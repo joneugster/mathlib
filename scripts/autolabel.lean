@@ -215,7 +215,9 @@ def mathlibLabelData : (l : Label) → LabelData l
     dirs := #["Mathlib" / "Geometry" / "Manifold"] }
   | .«t-dynamics» => {}
   | .«t-euclidean-geometry» => {
-    dirs := #["Mathlib" / "Geometry" / "Euclidean"] }
+    dirs := #[
+      "Mathlib" / "Geometry" / "Euclidean",
+      "Mathlib" / "Geometry" / "Polygon"] }
   | .«t-geometric-group-theory» => {
     dirs := #["Mathlib" / "Geometry" / "Group"] }
   | .«t-group-theory» => {}
@@ -250,6 +252,7 @@ def mathlibLabelData : (l : Label) → LabelData l
     dirs := #[
       ".github",
       "scripts",
+      "Cache",
     ],
     exclusions := #[
       "scripts" / "lint-style.lean",

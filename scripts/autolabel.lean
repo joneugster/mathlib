@@ -97,7 +97,6 @@ inductive Label where
 /--
 Array of all topic labels which are used in Mathlib.
 
-Note: Since Lean does not know reflection, this needs to be updated manually!
 -/
 def mathlibLabels : Array Label := #[
   .«t-algebra», .«t-algebraic-geometry», .«t-algebraic-topology», .«t-analysis»,

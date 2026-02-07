@@ -336,7 +336,6 @@ unsafe def main (args : List String): IO UInt32 := do
   | #[] =>
     println s!"::warning::no label to add"
   | newLabels =>
-    let newLabelsAsJointString : String := s!"\"{",".intercalate newLabels.toList}\""
     match prNumber? with
     | some n =>
       if newLabels.size > MAX_LABELS then
@@ -351,10 +350,10 @@ unsafe def main (args : List String): IO UInt32 := do
       | [] => -- if the PR does not have a label that this script could add, then we add a label
         let _ ← IO.Process.run {
           cmd := "gh",
-          args := #["pr", "edit", n, "--add-label", newLabelsAsJointString] }
-        println s!"::notice::added labels: {newLabelsAsJointString}"
+          args := #["pr", "edit", n, "--add-label", s!"\"{",".intercalate newLabels.toList}\""] }
+        println s!"::notice::added labels: {newLabels}"
       | t_labels_already_present =>
-        println s!"::notice::Did not add labels '{newLabelsAsJointString}',
+        println s!"::notice::Did not add labels '{newLabels}',
                   since {t_labels_already_present} were already present"
     | none =>
       println s!"::warning::no PR-number provided, not adding labels. \

@@ -86,10 +86,7 @@ inductive Label where
   | «IMO»
   deriving BEq, Hashable, Repr
 
-/--
-Array of all topic labels which are used in Mathlib.
-
--/
+/-- Array of all topic labels which are used in Mathlib -/
 def mathlibLabels : Array Label := #[
   .«t-algebra», .«t-algebraic-geometry», .«t-algebraic-topology», .«t-analysis»,
   .«t-category-theory», .«t-combinatorics», .«t-computability», .«t-condensed»,
@@ -171,9 +168,7 @@ structure LabelData (label : Label) where
   exclusions : Array FilePath := #[]
   deriving BEq, Hashable
 
-/--
-Mathlib labels and their corresponding folders.
--/
+/-- Mathlib labels and their corresponding folders -/
 def mathlibLabelData : (l : Label) → LabelData l
   | .«t-algebra» => {
     dirs := #[

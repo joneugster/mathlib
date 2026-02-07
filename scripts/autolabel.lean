@@ -336,12 +336,12 @@ unsafe def main (args : List String): IO UInt32 := do
   | #[] =>
     println s!"::warning::no label to add"
   | newLabels =>
-    if newLabels.size > MAX_LABELS then
-      println s!"::notice::not adding more than {MAX_LABELS} labels: {newLabels}"
-      return 0
     let newLabelsAsJointString : String := s!"\"{",".intercalate newLabels.toList}\""
     match prNumber? with
     | some n =>
+      if newLabels.size > MAX_LABELS then
+        println s!"::notice::not adding more than {MAX_LABELS} labels: {newLabels}"
+        return 0
       let labelsPresent ← IO.Process.run {
         cmd := "gh"
         args := #["pr", "view", n, "--json", "labels", "--jq", ".labels .[] .name"]}

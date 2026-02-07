@@ -324,7 +324,7 @@ def autoLabelCli (args : Cli.Parsed) : IO UInt32 := do
   match newLabels with
   | #[] =>
     println s!"::warning::no labels to add"
-  | _ =>
+  | #[_] =>
     match tool with
     | .gh prNr =>
       let labelsPresent ← if force then pure "" else IO.Process.run {
@@ -357,6 +357,7 @@ def autoLabelCli (args : Cli.Parsed) : IO UInt32 := do
       println s!"::notice::added label: {newLabels}"
     | .none =>
       println s!"::notice::github interaction disabled, not adding labels."
+  | _ => println s!"::notice::not adding multiple labels: {newLabels}"
   return 0
 
 end AutoLabel

@@ -353,7 +353,7 @@ unsafe def main (args : List String): IO UInt32 := do
           args := #["pr", "edit", n, "--add-label", s!"\"{",".intercalate newLabels.toList}\""] }
         println s!"::notice::added labels: {newLabels}"
       | t_labels_already_present =>
-        println s!"::notice::Did not add labels '{newLabels}',
+        println s!"::notice::Did not add labels '{newLabels}', \
                   since {t_labels_already_present} were already present"
     | none =>
       println s!"::warning::no PR-number provided, not adding labels. \

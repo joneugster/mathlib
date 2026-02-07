@@ -38,6 +38,6 @@ jobs:
         git checkout master
         git checkout -
         # the script
-        lake exe autolabel --curl ${{ github.event.pull_request.number }} ${{ secrets.GITHUB_TOKEN }}
+        lake exe autolabel --pr ${{ github.event.pull_request.number }} --curl ${{ secrets.GITHUB_TOKEN }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

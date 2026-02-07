@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jon Eugster, Damiano Testa
 -/
 import Lean.Elab.Command
+import Cli.Basic
 
 /-!
 # Automatic labelling of PRs
@@ -260,27 +261,51 @@ def githubAnnotation (type file title message : String) : String :=
 
 end AutoLabel
 
-open IO AutoLabel in
+/-- Available implementations about how to communicate with Github -/
+inductive GhInteractionTool where
+| none
+| gh (pr : String)
+| curl (pr : String) (token : String)
 
-/-- `args` is expected to have length 0 or 1, where the first argument is the PR number.
 
-If a PR number is provided, the script requires GitHub CLI `gh` to be installed in order
-to add the label to the PR.
 
-## Exit codes:
+open IO AutoLabel
 
-- `0`: success
-- `1`: invalid arguments provided
-- `2`: invalid labels defined
-- `3`: ~labels do not cover all of `Mathlib/`~ (unused; only emitting warning)
--/
-unsafe def main (args : List String): IO UInt32 := do
-  if args.length > 1 then
-    println s!"::error:: autolabel: invalid number of arguments ({args.length}), \
-    expected at most 1. Please run without arguments or provide the target PR's \
-    number as a single argument!"
-    return 1
-  let prNumber? := args[0]?
+-- /-- `args` is expected to have length 0 or 1, where the first argument is the PR number.
+
+-- If a PR number is provided, the script requires GitHub CLI `gh` to be installed in order
+-- to add the label to the PR.
+
+-- ## Exit codes:
+
+-- - `0`: success
+-- - `1`: invalid arguments provided
+-- - `2`: invalid labels defined
+-- - `3`: ~labels do not cover all of `Mathlib/`~ (unused; only emitting warning)
+-- -/
+-- unsafe def main (args : List String): IO UInt32 := do
+
+open Lean Core System
+
+open IO.FS IO.Process Name in
+/-- Implementation of the import graph command line program. -/
+def autoLabelCli (args : Cli.Parsed) : IO UInt32 := do
+
+  let force := args.hasFlag "force"
+  let tool: GhInteractionTool := if args.hasFlag "gh" then
+      .gh (args.flag! "gh" |>.as! String)
+    else if args.hasFlag "curl" then
+      let params := (args.flag! "curl" |>.as! (Array String))
+      .curl params[0]! params[1]!
+    else
+      .none
+
+  -- if args.length > 1 then
+  --   println s!"::error:: autolabel: invalid number of arguments ({args.length}), \
+  --   expected at most 1. Please run without arguments or provide the target PR's \
+  --   number as a single argument!"
+  --   return 1
+  -- let prNumber? := args[0]?
 
   -- test: validate that all paths in `mathlibLabels` actually exist
   let mut valid := true
@@ -317,11 +342,9 @@ unsafe def main (args : List String): IO UInt32 := do
     -- return 3
 
   -- get the modified files
-  println "Computing 'git diff --name-only origin/master...HEAD'"
   let gitDiff ← IO.Process.run {
     cmd := "git",
     args := #["diff", "--name-only", "origin/master...HEAD"] }
-  println s!"---\n{gitDiff}\n---"
   let modifiedFiles : Array FilePath := (gitDiff.splitOn "\n").toArray.map (⟨·⟩)
 
   -- find labels covering the modified files
@@ -332,26 +355,54 @@ unsafe def main (args : List String): IO UInt32 := do
   match labels with
   | #[] =>
     println s!"::warning::no label to add"
-  | #[label] =>
-    match prNumber? with
-    | some n =>
-      let labelsPresent ← IO.Process.run {
+  | labels =>
+    match tool with
+    | .gh prNr =>
+      let labelsPresent ← if force then pure "" else IO.Process.run {
         cmd := "gh"
-        args := #["pr", "view", n, "--json", "labels", "--jq", ".labels .[] .name"]}
+        args := #["pr", "view", prNr, "--json", "labels", "--jq", ".labels .[] .name"]}
       let labels := labelsPresent.splitToList (· == '\n')
       let autoLabels := mathlibLabels.map (·.label)
       match labels.filter autoLabels.contains with
-      | [] => -- if the PR does not have a label that this script could add, then we add a label
+      | [] =>
         let _ ← IO.Process.run {
           cmd := "gh",
-          args := #["pr", "edit", n, "--add-label", label] }
-        println s!"::notice::added label: {label}"
-      | t_labels_already_present =>
-        println s!"::notice::Did not add label '{label}', since {t_labels_already_present} \
+          args := #["pr", "edit", prNr, "--add-label", ",".intercalate labels] }
+        println s!"::notice::added label: {labels}"
+      | t_labels_already_present  =>
+        println s!"::notice::did not add label '{labels}', since {t_labels_already_present} \
                   were already present"
-    | none =>
-      println s!"::warning::no PR-number provided, not adding labels. \
-      (call `lake exe autolabel 150602` to add the labels to PR `150602`)"
-  | _ =>
-    println s!"::notice::not adding multiple labels: {labels}"
+    | .curl prNr token =>
+      let _ ← IO.Process.run {
+        cmd := "curl",
+        args := #["--request", "POST",
+          "--header 'Accept: application/vnd.github+json'",
+          s!"--header 'authorization: Bearer {token}",
+          "--header 'X-GitHub-Api-Version: 2022-11-28'",
+          s!"--url 'https://api.github.com/repos/leanprover-community/mathlib4/issues/{prNr}/labels'",
+          "--data '{\"labels\":[" ++ s!"{",".intercalate labels.toList}" ++ "]}'"
+          ] }
+      println s!"::notice::added label: {labels}"
+    | .none =>
+      println s!"::notice::github interaction disabled, not adding labels."
   return 0
+
+/-- Setting up command line options and help text for `lake exe autolabel` -/
+def autolabel : Cli.Cmd := `[Cli|
+  autolabel VIA autoLabelCli; ["0.1.0"]
+  "
+  Determine a list of applicable mathlib labels comparing current changes to `origin/master`.
+
+  This tool is mathlib-specific and has no application in downstream projects.
+  "
+  FLAGS:
+    "gh" : Nat;            "apply label(s) using`gh`. usage: `lake exe autolabel --gh 20156`"
+    "curl" : Array String; "apply label(s) using `curl`. \
+                            usage: `lake exe autolabel --curl \"20156\" \"<ACCESS_TOKEN>\"`. \
+                            (currently, this implies `--force`)"
+    "force";               "apply labels even if there are already labels on the PR."
+]
+
+/-- `lake exe autolabel` -/
+public def main (args : List String) : IO UInt32 :=
+  autolabel.validate args

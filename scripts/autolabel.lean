@@ -31,8 +31,8 @@ These are printed for testing purposes.
 to the PR specified. This requires the **GitHub CLI** `gh` to be installed!
 Example: `lake exe autolabel 10402` for PR https://github.com/leanprover-community/mathlib4/pull/10402.
 
-For the time being, the script only adds a label if it finds a **single unique label**
-which would apply. If multiple labels are found, nothing happens.
+The script can add up to `MAX_LABELS` labels (defined below).
+If more than `MAX_LABELS` labels would be applicable, nothing happens.
 
 ## Workflow
 
@@ -54,6 +54,9 @@ Additionally, the script does a few consistency checks:
 open Lean System
 
 namespace AutoLabel
+
+/-- Maximal number of labels which can be added. If more are applicable, nothing will be added. -/
+def MAX_LABELS := 1
 
 /--
 A `Label` consists of the
@@ -332,7 +335,11 @@ unsafe def main (args : List String): IO UInt32 := do
   match labels with
   | #[] =>
     println s!"::warning::no label to add"
-  | #[label] =>
+  | newLabels =>
+    if newLabels.size > MAX_LABELS then
+      println s!"::notice::not adding more than {MAX_LABELS} labels: {newLabels}"
+      return 0
+    let newLabelsAsJointString : String := s!"\"{",".intercalate newLabels.toList}\""
     match prNumber? with
     | some n =>
       let labelsPresent ← IO.Process.run {
@@ -344,14 +351,12 @@ unsafe def main (args : List String): IO UInt32 := do
       | [] => -- if the PR does not have a label that this script could add, then we add a label
         let _ ← IO.Process.run {
           cmd := "gh",
-          args := #["pr", "edit", n, "--add-label", label] }
-        println s!"::notice::added label: {label}"
+          args := #["pr", "edit", n, "--add-label", newLabelsAsJointString] }
+        println s!"::notice::added labels: {newLabelsAsJointString}"
       | t_labels_already_present =>
-        println s!"::notice::Did not add label '{label}', since {t_labels_already_present} \
-                  were already present"
+        println s!"::notice::Did not add labels '{newLabelsAsJointString}',
+                  since {t_labels_already_present} were already present"
     | none =>
       println s!"::warning::no PR-number provided, not adding labels. \
       (call `lake exe autolabel 150602` to add the labels to PR `150602`)"
-  | _ =>
-    println s!"::notice::not adding multiple labels: {labels}"
   return 0

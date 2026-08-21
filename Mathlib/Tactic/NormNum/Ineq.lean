@@ -180,7 +180,7 @@ theorem isInt_lt_false [Ring α] [PartialOrder α] [IsOrderedRing α] {a b : α}
 
 attribute [local instance] monadLiftOptionMetaM in
 /-- Identify (as `true` or `false`) expressions of the form `a ≤ b`, where `a` and `b` are numeric
-  expressions whose evaluations to `NormNum.Result` have already been computed. -/
+expressions whose evaluations to `NormNum.Result` have already been computed. -/
 def evalLE.core {u : Level} {α : Q(Type u)} (lα : Q(LE $α)) {a b : Q($α)}
     (ra : NormNum.Result a) (rb : NormNum.Result b) : MetaM (NormNum.Result q($a ≤ $b)) := do
   let e := q($a ≤ $b)
@@ -245,7 +245,7 @@ such that `norm_num` successfully recognises both `a` and `b`. -/
 
 attribute [local instance] monadLiftOptionMetaM in
 /-- Identify (as `true` or `false`) expressions of the form `a < b`, where `a` and `b` are numeric
-  expressions whose evaluations to `NormNum.Result` have already been computed. -/
+expressions whose evaluations to `NormNum.Result` have already been computed. -/
 def evalLT.core {u : Level} {α : Q(Type u)} (lα : Q(LT $α)) {a b : Q($α)}
     (ra : NormNum.Result a) (rb : NormNum.Result b) : MetaM (NormNum.Result q($a < $b)) := do
   let e := q($a < $b)

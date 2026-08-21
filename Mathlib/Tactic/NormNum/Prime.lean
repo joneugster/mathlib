@@ -120,10 +120,9 @@ theorem isNat_minFac_4 : {n n' k : ℕ} →
       _ ≤ n.minFac := h1.2.2
       _ ≤ m        := Nat.minFac_le_of_dvd hm h2mn
 
-partial def evalMinFac.core (n : Q(ℕ)) := do
+partial def evalMinFac.core (n : Q(ℕ)) (nn : Q(ℕ)) (pn : Q(IsNat $n $nn))
+    (n' : ℕ) : MetaM (Result q(Nat.minFac $n)) := do
   let sℕ : Q(AddMonoidWithOne ℕ) := q(Nat.instAddMonoidWithOne)
-  let ⟨nn, pn⟩ ← deriveNat n sℕ
-  let n' := nn.natLit!
   let rec aux (ek : Q(ℕ)) (prf : Q(MinFacHelper $nn $ek)) :
       (c : Q(ℕ)) × Q(IsNat (Nat.minFac $n) $c) :=
     let k := ek.natLit!
@@ -166,7 +165,9 @@ partial def evalMinFac.core (n : Q(ℕ)) := do
 /-- The `norm_num` extension which identifies expressions of the form `minFac n`. -/
 @[norm_num Nat.minFac _] partial def evalMinFac : NormNumExt where eval {_ _} e := do
   let .app (.const ``Nat.minFac _) (n : Q(ℕ)) ← whnfR e | failure
-  evalMinFac.core n
+  let ⟨nn, pn⟩ ← deriveNat n q(Nat.instAddMonoidWithOne)
+  let n' := nn.natLit!
+  evalMinFac.core n nn pn n'
 
 theorem isNat_prime_0 : {n : ℕ} → IsNat n (nat_lit 0) → ¬ n.Prime
   | _, ⟨rfl⟩ => not_prime_zero
@@ -198,7 +199,7 @@ theorem isNat_not_prime {n n' : ℕ} (h : IsNat n n') : ¬n'.Prime → ¬n.Prime
         return .isFalse q(isNat_not_prime $pn $prf)
       let r : Q(Nat.ble 2 $nn = true) := (q(Eq.refl true) : Expr)
       let .isNat _ _lit (p2n : Q(IsNat (minFac $nn) $nn)) ←
-        evalMinFac.core nn _ nn q(.raw_refl _) nn.natLit! | failure
+        evalMinFac.core nn nn q(.raw_refl _) nn.natLit! | failure
       return .isTrue q(isNat_prime_2 $pn $r $p2n)
   core
 

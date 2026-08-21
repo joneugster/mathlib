@@ -102,8 +102,8 @@ lemma isInt_emod_neg {a b : ℤ} {r : ℕ} (h : IsNat (a % -b) r) : IsNat (a % b
 
 /-- Given a result for evaluating `a b` in `ℤ`, evaluate `a % b`. -/
 def evalIntMod.go (a na : Q(ℤ)) (za : ℤ) (pa : Q(IsInt $a $na))
-    (b : Q(ℤ)) : Result b → Option (Result q($a % $b))
-  | .isNat inst nb pb => do
+    (b : Q(ℤ)) : Result (u := .zero) b → Option (Result q($a % $b))
+  | .isNat _ nb pb => do
     assumeInstancesCommute
     if nb.natLit! == 0 then
       have _ : $nb =Q nat_lit 0 := ⟨⟩
@@ -145,7 +145,7 @@ partial def evalIntMod : NormNumExt where eval {u α} e := do
   haveI' : $e =Q ($a % $b) := ⟨⟩
   let rℤ : Q(Ring ℤ) := q(Int.instRing)
   let some ⟨za, na, pa⟩ := (← derive a).toInt rℤ | failure
-  go a na za pa b (← derive (u := .zero) b)
+  evalIntMod.go a na za pa b (← derive (u := .zero) b)
 
 theorem isInt_dvd_true : {a b : ℤ} → {a' b' c : ℤ} →
     IsInt a a' → IsInt b b' → Int.mul a' c = b' → a ∣ b

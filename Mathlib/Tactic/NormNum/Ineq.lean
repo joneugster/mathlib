@@ -241,7 +241,7 @@ such that `norm_num` successfully recognises both `a` and `b`. -/
   let ra ← derive a; let rb ← derive b
   let lα ← synthInstanceQ q(LE $α)
   guard <|← withNewMCtxDepth <| isDefEq f q(LE.le (α := $α))
-  core lα ra rb
+  evalLE.core lα ra rb
 
 attribute [local instance] monadLiftOptionMetaM in
 /-- Identify (as `true` or `false`) expressions of the form `a < b`, where `a` and `b` are numeric
@@ -321,6 +321,6 @@ such that `norm_num` successfully recognises both `a` and `b`. -/
   let ra ← derive a; let rb ← derive b
   let lα ← synthInstanceQ q(LT $α)
   guard <|← withNewMCtxDepth <| isDefEq f q(LT.lt (α := $α))
-  core lα ra rb
+  evalLT.core lα ra rb
 
 end Mathlib.Meta.NormNum
